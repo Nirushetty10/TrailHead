@@ -1,0 +1,54 @@
+[
+  {
+    "id": "ridge-shell",
+    "name": "Ridge Shell",
+    "category": "jacket",
+    "price": 112,
+    "originalPrice": 149,
+    "currency": "USD",
+    "stock": "in_stock",
+    "stockCount": 14,
+    "variants": ["S", "M", "L", "XL"],
+    "description": "Lightweight waterproof running shell, breathable 2.5-layer fabric, best for wet trail runs.",
+    "tags": ["waterproof", "running", "breathable", "rain"]
+  },
+  {
+    "id": "storm-anorak",
+    "name": "Storm Anorak",
+    "category": "jacket",
+    "price": 98,
+    "originalPrice": 98,
+    "currency": "USD",
+    "stock": "in_stock",
+    "stockCount": 22,
+    "variants": ["S", "M", "L"],
+    "description": "Pullover rain anorak, heavier fabric, better for hiking than running.",
+    "tags": ["waterproof", "hiking", "rain", "budget"]
+  },
+  {
+    "id": "summit-rain",
+    "name": "Summit Rain Jkt",
+    "category": "jacket",
+    "price": 119,
+    "originalPrice": 159,
+    "currency": "USD",
+    "stock": "low_stock",
+    "stockCount": 2,
+    "variants": ["M", "L", "XL"],
+    "description": "Premium 3-layer shell with pit zips, built for alpine conditions.",
+    "tags": ["waterproof", "alpine", "premium"]
+  },
+  {
+    "id": "trail-runner-3",
+    "name": "Trail Runner 3",
+    "category": "footwear",
+    "price": 129,
+    "originalPrice": 129,
+    "currency": "USD",
+    "stock": "in_stock",
+    "stockCount": 31,
+    "variants": ["8", "9", "10", "11"],
+    "description": "Trail running shoe with aggressive grip, mesh upper for breathability.",
+    "tags": ["shoe", "running", "trail"]
+  }
+]

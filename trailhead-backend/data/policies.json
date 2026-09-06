@@ -1,0 +1,17 @@
+[
+  {
+    "topic": "exchange",
+    "keywords": ["exchange", "return", "refund", "not good", "damaged", "wrong size"],
+    "content": "Items can be returned or exchanged within 30 days of delivery if unworn and in original packaging. Exchanges are free; refunds take 5-7 business days after we receive the item."
+  },
+  {
+    "topic": "shipping",
+    "keywords": ["shipping", "delivery time", "how long", "free shipping"],
+    "content": "Standard shipping takes 3-5 business days and is free on orders over $75. Orders under $75 have a flat $6.50 shipping fee."
+  },
+  {
+    "topic": "appointments",
+    "keywords": ["appointment", "book", "fitting", "schedule"],
+    "content": "In-store boot fittings and gear consultations can be booked at the Downtown branch, Tue-Sat 10am-6pm, in 30-minute slots."
+  }
+]

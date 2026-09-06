@@ -1,0 +1,108 @@
+.product-card {
+  flex: 0 0 148px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.product-card--highlight {
+  border-color: var(--accent);
+}
+
+.product-card__image {
+  position: relative;
+  height: 128px;
+  background: var(--panel-raised);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-card__add-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: transform 0.12s ease;
+}
+
+.product-card__add-btn:hover {
+  transform: scale(1.08);
+}
+
+.product-card__body {
+  padding: 9px 10px 10px;
+}
+
+.product-card__name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.25;
+  min-height: 30px;
+}
+
+.product-card__price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.product-card__price {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--signal);
+}
+
+.product-card__original-price {
+  font-size: 10.5px;
+  color: var(--muted-dim);
+  text-decoration: line-through;
+}
+
+.product-card__stock {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+.product-card__stock.is-in-stock {
+  color: var(--success);
+}
+
+.product-card__stock.is-low-stock {
+  color: var(--signal);
+}
+
+.product-card__variants-btn {
+  margin-top: 7px;
+  width: 100%;
+  font-size: 10px;
+  padding: 5px 0;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.product-card__variants-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
