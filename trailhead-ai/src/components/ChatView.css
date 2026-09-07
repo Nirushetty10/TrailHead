@@ -98,6 +98,28 @@
   max-width: 100%;
 }
 
+.chat-bubble--limit {
+  align-self: center;
+  background: rgba(79, 168, 224, 0.08);
+  border: 1px solid rgba(79, 168, 224, 0.3);
+  color: var(--accent);
+  text-align: center;
+  font-size: 11.5px;
+}
+
+.chat-escalation {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  background: rgba(215, 163, 78, 0.08);
+  border: 1px solid rgba(215, 163, 78, 0.35);
+  color: var(--signal);
+  font-size: 11px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  max-width: 85%;
+}
+
 .chat-bubble--error {
   align-self: flex-start;
   background: rgba(215, 163, 78, 0.08);

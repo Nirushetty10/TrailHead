@@ -2,7 +2,12 @@
   {
     "id": "TH-48213",
     "customerEmail": "jane@example.com",
-    "items": [{ "productId": "trail-runner-3", "qty": 1 }],
+    "items": [
+      {
+        "productId": "trail-runner-3",
+        "qty": 1
+      }
+    ],
     "status": "out_for_delivery",
     "shippedAt": "2026-09-03",
     "estimatedDelivery": "2026-09-06T20:00:00",
@@ -17,7 +22,12 @@
   {
     "id": "TH-51890",
     "customerEmail": "sam@example.com",
-    "items": [{ "productId": "ridge-shell", "qty": 1 }],
+    "items": [
+      {
+        "productId": "ridge-shell",
+        "qty": 1
+      }
+    ],
     "status": "delivered",
     "shippedAt": "2026-08-20",
     "deliveredAt": "2026-08-24",
@@ -28,5 +38,28 @@
       "discount": 0,
       "total": 118.5
     }
+  },
+  {
+    "id": "TH-62210",
+    "customerEmail": "alex@example.com",
+    "items": [
+      {
+        "productId": "storm-anorak",
+        "qty": 1
+      }
+    ],
+    "status": "delivered",
+    "shippedAt": "2026-08-28",
+    "deliveredAt": "2026-08-31",
+    "breakdown": {
+      "subtotal": 98,
+      "tax": 0,
+      "shipping": 0,
+      "discount": 0,
+      "total": 98
+    },
+    "exchangeStatus": "requested",
+    "exchangeReason": "Customer requested return",
+    "exchangeRequestedAt": "2026-09-07T08:30:50.658Z"
   }
 ]

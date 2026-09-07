@@ -18,6 +18,7 @@ const nextId = () => `msg-${++idCounter}`;
 const STORAGE_KEY = 'trailhead-theme';
 
 function metaFor(result) {
+  if (result.receipt) return 'confirmed action · from your system';
   if (result.orderCard) return 'from your order system';
   if (result.products) return 'from your catalog';
   return null;
@@ -59,11 +60,13 @@ export default function App() {
         ...prev,
         {
           id: nextId(),
-          role: 'ai',
+          role: result.limitReached ? 'limit' : 'ai',
           text: result.text,
           meta: metaFor(result),
           products: result.products,
           orderCard: result.orderCard,
+          confirmAction: result.confirmAction,
+          escalation: result.escalation,
         },
       ]);
     }

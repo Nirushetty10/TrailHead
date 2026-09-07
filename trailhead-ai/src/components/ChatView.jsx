@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBackRounded';
+import FlagIcon from '@mui/icons-material/FlagRounded';
 import ProductCard from './ProductCard.jsx';
 import OrderCard from './OrderCard.jsx';
+import ConfirmCard from './ConfirmCard.jsx';
 import { cards } from '../data/cards.js';
 import './ChatView.css';
 
@@ -59,6 +61,10 @@ function ChatMessage({ message }) {
     return <div className="chat-bubble chat-bubble--error">{message.text}</div>;
   }
 
+  if (message.role === 'limit') {
+    return <div className="chat-bubble chat-bubble--limit">{message.text}</div>;
+  }
+
   return (
     <div className="chat-message--ai">
       {message.text && <div className="chat-bubble chat-bubble--ai">{message.text}</div>}
@@ -66,6 +72,15 @@ function ChatMessage({ message }) {
       {message.meta && <div className="chat-meta">{message.meta}</div>}
 
       {message.orderCard && <OrderCard order={message.orderCard} />}
+
+      {message.confirmAction && <ConfirmCard action={message.confirmAction} />}
+
+      {message.escalation && (
+        <div className="chat-escalation">
+          <FlagIcon sx={{ fontSize: 13 }} />
+          <span>Flagged for a team member to review — {message.escalation.note}</span>
+        </div>
+      )}
 
       {message.products && (
         <div className="chat-products">
