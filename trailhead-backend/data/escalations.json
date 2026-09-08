@@ -1,0 +1,11 @@
+[
+  {
+    "id": "02a88b64-b136-4341-9265-f08cb396d080",
+    "type": "exchange_review",
+    "orderId": "TH-48213",
+    "reason": "Product is not good",
+    "note": "Order TH-48213 total $136.5 exceeds $100 auto-approval limit — needs human review.",
+    "createdAt": "2026-09-08T06:17:19.284Z",
+    "resolved": false
+  }
+]

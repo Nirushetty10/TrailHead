@@ -1,0 +1,17 @@
+[
+  {
+    "id": "CAFE-1001",
+    "customerEmail": "morgan@example.com",
+    "items": [{ "productId": "flat-white", "qty": 2 }],
+    "status": "ready_for_pickup",
+    "shippedAt": null,
+    "estimatedDelivery": null,
+    "breakdown": {
+      "subtotal": 9.0,
+      "tax": 0.75,
+      "shipping": 0,
+      "discount": 0,
+      "total": 9.75
+    }
+  }
+]

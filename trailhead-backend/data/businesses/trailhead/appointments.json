@@ -1,0 +1,44 @@
+[
+  {
+    "id": "slot-1",
+    "date": "2026-09-10",
+    "time": "10:00",
+    "service": "Boot fitting",
+    "booked": false
+  },
+  {
+    "id": "slot-2",
+    "date": "2026-09-10",
+    "time": "10:30",
+    "service": "Boot fitting",
+    "booked": false
+  },
+  {
+    "id": "slot-3",
+    "date": "2026-09-10",
+    "time": "17:30",
+    "service": "Gear consultation",
+    "booked": false
+  },
+  {
+    "id": "slot-4",
+    "date": "2026-09-10",
+    "time": "18:00",
+    "service": "Gear consultation",
+    "booked": true
+  },
+  {
+    "id": "slot-5",
+    "date": "2026-09-11",
+    "time": "11:00",
+    "service": "Boot fitting",
+    "booked": false
+  },
+  {
+    "id": "slot-6",
+    "date": "2026-09-11",
+    "time": "14:00",
+    "service": "Gear consultation",
+    "booked": false
+  }
+]

@@ -1,0 +1,41 @@
+[
+  {
+    "id": "flat-white",
+    "name": "Flat White",
+    "category": "coffee",
+    "price": 4.5,
+    "originalPrice": 4.5,
+    "currency": "USD",
+    "stock": "in_stock",
+    "stockCount": 999,
+    "variants": ["Regular", "Large"],
+    "description": "Espresso with steamed milk and a thin layer of microfoam.",
+    "tags": ["coffee", "espresso", "milk"]
+  },
+  {
+    "id": "almond-croissant",
+    "name": "Almond Croissant",
+    "category": "pastry",
+    "price": 5.25,
+    "originalPrice": 5.25,
+    "currency": "USD",
+    "stock": "in_stock",
+    "stockCount": 8,
+    "variants": [],
+    "description": "Buttery croissant filled with almond cream, topped with sliced almonds.",
+    "tags": ["pastry", "almond", "breakfast"]
+  },
+  {
+    "id": "matcha-latte",
+    "name": "Matcha Latte",
+    "category": "tea",
+    "price": 5.0,
+    "originalPrice": 5.5,
+    "currency": "USD",
+    "stock": "low_stock",
+    "stockCount": 3,
+    "variants": ["Regular", "Large", "Oat milk"],
+    "description": "Ceremonial-grade matcha whisked with steamed milk.",
+    "tags": ["tea", "matcha", "milk"]
+  }
+]

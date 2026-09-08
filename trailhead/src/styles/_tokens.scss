@@ -1,0 +1,35 @@
+:root {
+  /* Color: warm paper-white base, near-black text, one violet-blue signal accent */
+  --bg: #FAF9F5;
+  --bg-alt: #F1EFE8;
+  --surface: #FFFFFF;
+  --line: #E4E1D6;
+  --line-strong: #D2CEC0;
+
+  --ink: #171712;
+  --ink-soft: #4C4A42;
+  --ink-faint: #8A8776;
+
+  --signal: #4B3CF0;
+  --signal-dark: #372CB8;
+  --signal-soft: #ECEAFB;
+  --signal-tint: #F2F1FC;
+
+  --amber: #C97A3A;
+  --green: #2F7A5C;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  --shadow-1: 0 1px 2px rgba(23, 23, 18, 0.04);
+  --shadow-2: 0 8px 24px rgba(23, 23, 18, 0.06);
+  --shadow-3: 0 24px 64px rgba(23, 23, 18, 0.10);
+
+  --font-display: 'Manrope', -apple-system, sans-serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+  --font-mono: 'DM Mono', 'SFMono-Regular', Consolas, monospace;
+
+  --container: 1180px;
+  --gutter: clamp(20px, 5vw, 64px);
+}

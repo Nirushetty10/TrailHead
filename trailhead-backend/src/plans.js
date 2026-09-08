@@ -37,10 +37,12 @@ export const plans = {
   },
 };
 
-// Phase 2: this backend still serves a single business, so the active
-// plan is one env var. Phase 3 (multi-tenant): this becomes a per-business
-// lookup instead of a single global value.
-export function getActivePlan() {
-  const planKey = (process.env.BUSINESS_PLAN || 'free').toLowerCase();
-  return plans[planKey] || plans.free;
+// Phase 3 (multi-tenant): each business's plan now comes from the
+// registry (data/businesses.json), not a single global env var — every
+// business on the platform can be on a different plan.
+import { getBusiness } from './businessRegistry.js';
+
+export function getPlanForBusiness(businessId) {
+  const business = getBusiness(businessId);
+  return plans[business.plan] || plans.free;
 }

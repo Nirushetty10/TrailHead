@@ -1,0 +1,18 @@
+[
+  {
+    "id": "trailhead",
+    "name": "Trailhead",
+    "description": "an outdoor gear store",
+    "plan": "free",
+    "defaultTheme": "dark",
+    "enabledCardIds": ["support", "orders", "finder", "pricing", "exchange", "appointment"]
+  },
+  {
+    "id": "demo-cafe",
+    "name": "Riverside Cafe",
+    "description": "a neighborhood coffee shop",
+    "plan": "free",
+    "defaultTheme": "light",
+    "enabledCardIds": ["support", "orders", "exchange"]
+  }
+]

@@ -7,9 +7,10 @@ import AnimatedBackground from './components/AnimatedBackground.jsx';
 import HomeCards from './components/HomeCards.jsx';
 import ChatView from './components/ChatView.jsx';
 import ThemeToggle from './components/ThemeToggle.jsx';
-import { socket } from './services/socket.js';
+import { socket, backendUrl } from './services/socket.js';
 import { buildTheme } from './theme.js';
 import { themes, tokensToCssVars } from './themes.js';
+import { cards as allCards } from './data/cards.js';
 import './App.css';
 
 let idCounter = 0;
@@ -45,6 +46,37 @@ export default function App() {
       /* ignore storage failures (private browsing etc) */
     }
   }
+
+  // null while loading — HomeCards waits for this so it never flashes
+  // the full universal card set before the business's actual config
+  // (enabled cards, default theme) arrives.
+  const [businessConfig, setBusinessConfig] = useState(null);
+
+  useEffect(() => {
+    fetch(`${backendUrl}/api/business-config`)
+      .then((r) => r.json())
+      .then((config) => {
+        setBusinessConfig(config);
+        // Only apply the business's default theme if the person hasn't
+        // already picked one themselves (their choice always wins).
+        try {
+          if (!localStorage.getItem(STORAGE_KEY) && config.defaultTheme) {
+            setThemeName(config.defaultTheme);
+          }
+        } catch {
+          /* ignore storage errors */
+        }
+      })
+      .catch(() => {
+        // Backend unreachable — fall back to showing every card rather
+        // than blocking the whole UI on a failed fetch.
+        setBusinessConfig({ name: 'Assistant', enabledCardIds: allCards.map((c) => c.id) });
+      });
+  }, []);
+
+  const visibleCards = businessConfig
+    ? allCards.filter((c) => businessConfig.enabledCardIds.includes(c.id))
+    : [];
 
   const [view, setView] = useState('home');
   const [messages, setMessages] = useState([]);
@@ -137,7 +169,7 @@ export default function App() {
         <div className="app-shell__content">
           <div className="app-shell__scroll-area">
             {view === 'home' ? (
-              <HomeCards onSelectCard={handleSelectCard} />
+              <HomeCards cards={visibleCards} businessName={businessConfig?.name} onSelectCard={handleSelectCard} />
             ) : (
               <ChatView
                 messages={messages}

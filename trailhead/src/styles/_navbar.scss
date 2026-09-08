@@ -1,0 +1,144 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(250, 249, 245, 0.7);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s ease, padding 0.3s ease;
+}
+
+.navbar--scrolled {
+  border-bottom-color: var(--line);
+}
+
+.navbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px var(--gutter);
+  transition: padding 0.3s ease;
+}
+
+.navbar--scrolled .navbar__inner {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.navbar__logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.navbar__mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--signal);
+  position: relative;
+}
+
+.navbar__mark::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-left: 2px solid var(--bg);
+  border-bottom: 2px solid var(--bg);
+  transform: rotate(45deg) translate(1px,-1px);
+}
+
+.navbar__links {
+  display: none;
+  gap: 32px;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.navbar__links a:hover {
+  color: var(--ink);
+}
+
+.navbar__actions {
+  display: none;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar__signin {
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  padding: 10px 6px;
+}
+
+.navbar__signin:hover {
+  color: var(--ink);
+}
+
+.navbar__demo,
+.navbar__actions .btn--primary {
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+.navbar__toggle {
+  background: none;
+  border: none;
+  color: var(--ink);
+  display: flex;
+}
+
+.navbar__mobile {
+  max-height: 0;
+  overflow: hidden;
+  background: var(--bg);
+  border-bottom: 1px solid transparent;
+  transition: max-height 0.3s ease;
+}
+
+.navbar__mobile--open {
+  max-height: 420px;
+  border-bottom-color: var(--line);
+}
+
+.navbar__mobile nav {
+  display: flex;
+  flex-direction: column;
+  padding: 8px var(--gutter) 0;
+}
+
+.navbar__mobile nav a {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.navbar__mobile-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px var(--gutter) 24px;
+}
+
+.navbar__mobile-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+@media (min-width: 1080px) {
+  .navbar__links {
+    display: flex;
+  }
+  .navbar__actions {
+    display: flex;
+  }
+  .navbar__toggle {
+    display: none;
+  }
+}

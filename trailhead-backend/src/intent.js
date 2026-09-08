@@ -7,6 +7,11 @@
 const ORDER_ID_PATTERN = /\bTH-\d{3,}\b/i;
 const EMAIL_PATTERN = /[\w.+-]+@[\w-]+\.[\w.-]+/;
 const PRICE_PATTERN = /\$?\s?(\d{2,4})/;
+// Business-agnostic budget signal: "under 10", "under $120", "below 50",
+// "less than 20" — a budget constraint is a strong product-search signal
+// regardless of what product vocabulary the business uses (jacket vs
+// coffee vs anything else), so this doesn't need a per-business word list.
+const BUDGET_PATTERN = /\b(under|below|less than|cheaper than)\s+\$?\d+/i;
 
 // Order matters: more specific intents are checked before generic ones.
 // "order" appears in almost every message about an order, so exchange/
@@ -26,7 +31,7 @@ const INTENTS = [
   },
   {
     type: 'product_search',
-    keywords: ['recommend', 'find', 'looking for', 'jacket', 'shoe', 'boot', 'under $', 'budget'],
+    keywords: ['recommend', 'find', 'looking for', 'budget'],
   },
   {
     type: 'order_status',
@@ -47,6 +52,13 @@ export function classify(message) {
       intent = candidate.type;
       break;
     }
+  }
+
+  // A budget constraint is a strong product-search signal on its own,
+  // independent of business vocabulary — check this before falling back
+  // to order_status, but after the more specific intents above.
+  if (intent === 'support_general' && BUDGET_PATTERN.test(message)) {
+    intent = 'product_search';
   }
 
   // An order id or email mentioned anywhere strongly implies order_status,

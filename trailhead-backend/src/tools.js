@@ -1,20 +1,16 @@
 import {
   searchProducts,
   getOrderById,
-  getOrdersByEmail,
   findPolicy,
   getAvailableSlots,
   getSlotById,
   bookSlot,
   requestExchange,
 } from './dataStore.js';
+import { raiseEscalation } from './escalationStore.js';
 
-// Business rule from the original design: don't auto-approve high-value
-// exchanges. Anything at or above this goes to a human instead of being
-// silently actioned. Tune this per business.
 const EXCHANGE_AUTO_APPROVE_LIMIT = 100;
 
-// --- Tool schemas, given to the LLM so it knows what it can call ---
 export const toolSchemas = [
   {
     type: 'function',
@@ -25,8 +21,8 @@ export const toolSchemas = [
         type: 'object',
         properties: {
           maxPrice: { type: 'number', description: 'Maximum price in USD' },
-          category: { type: 'string', description: 'e.g. jacket, footwear' },
-          keyword: { type: 'string', description: 'A word from the product name, description, or use-case (e.g. "waterproof", "running")' },
+          category: { type: 'string', description: 'e.g. jacket, footwear, coffee, pastry' },
+          keyword: { type: 'string', description: 'A word from the product name, description, or use-case' },
         },
       },
     },
@@ -35,13 +31,14 @@ export const toolSchemas = [
     type: 'function',
     function: {
       name: 'get_order',
-      description: 'Look up an order by its order number or the customer email.',
+      description: 'Look up an order by its order number. SECURITY: this ALWAYS also requires the email address on the order to verify identity — if the customer has only given the order number, ask for the email before calling this with both, or call it once with just orderId to check if it is already verified from earlier in this conversation. Never reveal any order details from your own knowledge — only from this tool\'s result.',
       parameters: {
         type: 'object',
         properties: {
           orderId: { type: 'string' },
-          email: { type: 'string' },
+          email: { type: 'string', description: 'The email address the customer says is on the order — required unless this order was already verified earlier in the conversation.' },
         },
+        required: ['orderId'],
       },
     },
   },
@@ -49,11 +46,11 @@ export const toolSchemas = [
     type: 'function',
     function: {
       name: 'find_policy',
-      description: 'Look up store policy text (shipping, returns, appointments) relevant to the customer question.',
+      description: 'Look up store policy text (shipping, returns, hours, appointments) relevant to the customer question.',
       parameters: {
         type: 'object',
         properties: {
-          topic: { type: 'string', description: 'e.g. "exchange", "shipping", "appointments"' },
+          topic: { type: 'string', description: 'e.g. "exchange", "shipping", "hours", "appointments"' },
         },
       },
     },
@@ -62,7 +59,7 @@ export const toolSchemas = [
     type: 'function',
     function: {
       name: 'check_appointment_slots',
-      description: 'Check available appointment slots, optionally filtered by date (YYYY-MM-DD).',
+      description: 'Check available appointment slots, optionally filtered by date (YYYY-MM-DD). Only relevant if this business offers bookable appointments.',
       parameters: {
         type: 'object',
         properties: {
@@ -89,11 +86,12 @@ export const toolSchemas = [
     type: 'function',
     function: {
       name: 'start_exchange',
-      description: 'Start a return/exchange for an order. Orders under $100 need customer confirmation before finalizing. Orders $100 or over are always escalated to a human — never tell the customer it is approved in that case.',
+      description: 'Start a return/exchange for an order. SECURITY: requires the order to be verified first (same email rule as get_order) — pass email if not already verified. Orders under $100 need customer confirmation before finalizing. Orders $100 or over are always escalated to a human — never tell the customer it is approved in that case.',
       parameters: {
         type: 'object',
         properties: {
           orderId: { type: 'string' },
+          email: { type: 'string', description: 'Required unless this order was already verified earlier in the conversation.' },
           reason: { type: 'string' },
         },
         required: ['orderId'],
@@ -117,20 +115,29 @@ export const toolSchemas = [
   },
 ];
 
+function verifyOrderAccess(order, args, session) {
+  if (!order) return false;
+  if (session.verifiedOrders.includes(order.id)) return true;
+  if (args.email && order.customerEmail.toLowerCase() === args.email.toLowerCase()) {
+    session.verifiedOrders.push(order.id);
+    return true;
+  }
+  return false;
+}
+
+const VERIFICATION_NEEDED_MESSAGE =
+  "Identity not verified — tell the customer you need the email address on the order before sharing any details, then call this tool again with that email. Do not reveal whether an order with that number exists.";
+
 /**
- * Executes a tool call. Returns:
- *   - toolResult: what gets fed back to the LLM as the tool's output
- *   - uiPayload: optional structured data for the frontend (products, orderCard, confirmAction, escalation, cartUpdate)
- *
- * This is the single place guardrails live: read tools always execute,
- * write tools either execute immediately (low-risk), require confirmation
- * (medium-risk), or get escalated to a human (high-risk) — the LLM never
- * decides this, the code does.
+ * Every call is scoped to `businessId` — this is what actually enforces
+ * data isolation between tenants. A tool call for the cafe can never see
+ * Trailhead's products/orders, and vice versa, because dataStore itself
+ * only ever loads and caches per-business files.
  */
-export function executeTool(name, args, session) {
+export function executeTool(businessId, name, args, session) {
   switch (name) {
     case 'search_products': {
-      const results = searchProducts(args);
+      const results = searchProducts(businessId, args);
       if (results.length) {
         session.facts.lastCategory = args.category || session.facts.lastCategory;
         session.facts.lastBudget = args.maxPrice || session.facts.lastBudget;
@@ -144,19 +151,19 @@ export function executeTool(name, args, session) {
     }
 
     case 'get_order': {
-      let order = args.orderId ? getOrderById(args.orderId) : null;
-      if (!order && args.email) {
-        order = getOrdersByEmail(args.email)[0] || null;
+      const order = args.orderId ? getOrderById(businessId, args.orderId) : null;
+      if (!verifyOrderAccess(order, args, session)) {
+        return { toolResult: VERIFICATION_NEEDED_MESSAGE, uiPayload: null };
       }
-      if (order) session.facts.lastOrderId = order.id;
+      session.facts.lastOrderId = order.id;
       return {
-        toolResult: order ? JSON.stringify(order) : 'No matching order found.',
-        uiPayload: order ? { orderCard: order } : null,
+        toolResult: JSON.stringify(order),
+        uiPayload: { orderCard: order },
       };
     }
 
     case 'find_policy': {
-      const policy = findPolicy(args.topic || '');
+      const policy = findPolicy(businessId, args.topic || '');
       return {
         toolResult: policy ? policy.content : 'No policy found on that topic.',
         uiPayload: null,
@@ -164,7 +171,7 @@ export function executeTool(name, args, session) {
     }
 
     case 'check_appointment_slots': {
-      const slots = getAvailableSlots(args);
+      const slots = getAvailableSlots(businessId, args);
       return {
         toolResult: slots.length ? JSON.stringify(slots) : 'No available slots for that date.',
         uiPayload: null,
@@ -172,12 +179,10 @@ export function executeTool(name, args, session) {
     }
 
     case 'book_appointment': {
-      const slot = getSlotById(args.slotId);
+      const slot = getSlotById(businessId, args.slotId);
       if (!slot || slot.booked) {
         return { toolResult: 'That slot is no longer available.', uiPayload: null };
       }
-      // Medium-risk write: don't execute yet — hand back to the client for
-      // explicit confirmation. The orchestrator turns this into a confirm card.
       return {
         toolResult: 'Awaiting customer confirmation before booking — do not tell the customer this is booked yet.',
         uiPayload: {
@@ -192,30 +197,37 @@ export function executeTool(name, args, session) {
     }
 
     case 'start_exchange': {
-      const order = getOrderById(args.orderId);
-      if (!order) {
-        return { toolResult: 'Order not found.', uiPayload: null };
+      const order = args.orderId ? getOrderById(businessId, args.orderId) : null;
+      if (!verifyOrderAccess(order, args, session)) {
+        return { toolResult: VERIFICATION_NEEDED_MESSAGE, uiPayload: null };
       }
+
       if (order.breakdown.total >= EXCHANGE_AUTO_APPROVE_LIMIT) {
-        // High-risk: never auto-approve, never let the customer confirm it
-        // themselves — this goes to a human, full stop.
+        const escalation = raiseEscalation(businessId, {
+          type: 'exchange_review',
+          orderId: order.id,
+          reason: args.reason,
+          note: `Order ${order.id} total $${order.breakdown.total} exceeds $${EXCHANGE_AUTO_APPROVE_LIMIT} auto-approval limit — needs human review.`,
+        });
         return {
-          toolResult: `Order total is $${order.breakdown.total}, at or above the $${EXCHANGE_AUTO_APPROVE_LIMIT} auto-approval limit. This must be escalated to a human — tell the customer their request has been flagged for review, not approved.`,
+          toolResult: `Order total is $${order.breakdown.total}, at or above the $${EXCHANGE_AUTO_APPROVE_LIMIT} auto-approval limit. This has been escalated to a human (escalation id ${escalation.id}) — tell the customer their request has been flagged for review, not approved.`,
           uiPayload: {
             escalation: {
+              id: escalation.id,
               orderId: order.id,
               reason: args.reason || null,
-              note: `Order total $${order.breakdown.total} exceeds auto-approval limit — needs human review.`,
+              note: escalation.note,
             },
           },
         };
       }
+
       return {
         toolResult: 'Awaiting customer confirmation before starting the exchange — do not tell the customer this is done yet.',
         uiPayload: {
           confirmAction: {
             type: 'start_exchange',
-            args: { orderId: args.orderId, reason: args.reason || null },
+            args: { orderId: order.id, reason: args.reason || null },
             title: `Confirm exchange for ${order.id}`,
             description: args.reason ? `Reason: ${args.reason}` : 'No reason given',
           },
@@ -236,14 +248,9 @@ export function executeTool(name, args, session) {
   }
 }
 
-/**
- * Actually performs a write action after the customer has explicitly
- * confirmed it. Called from the confirm_action socket event, never
- * directly from the LLM.
- */
-export function finalizeConfirmedAction(type, args) {
+export function finalizeConfirmedAction(businessId, type, args) {
   if (type === 'book_appointment') {
-    const result = bookSlot(args.slotId);
+    const result = bookSlot(businessId, args.slotId);
     if (!result.ok) return { ok: false, message: result.error };
     return {
       ok: true,
@@ -253,7 +260,7 @@ export function finalizeConfirmedAction(type, args) {
   }
 
   if (type === 'start_exchange') {
-    const result = requestExchange(args.orderId, args.reason);
+    const result = requestExchange(businessId, args.orderId, args.reason);
     if (!result.ok) return { ok: false, message: result.error };
     return {
       ok: true,

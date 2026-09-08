@@ -1,0 +1,212 @@
+/* How it works timeline */
+.timeline {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.timeline__item {
+  padding-top: 20px;
+  border-top: 2px solid var(--line-strong);
+}
+
+.timeline__number {
+  font-family: var(--font-mono), var(--font-body);
+  font-size: 13px;
+  color: var(--signal);
+}
+
+.timeline__item h3 {
+  margin-top: 12px;
+  font-size: 18px;
+}
+
+.timeline__item p {
+  margin-top: 8px;
+  font-size: 14.5px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+/* For small businesses */
+.smallbiz__compare {
+  display: grid;
+  gap: 20px;
+}
+
+.smallbiz__panel {
+  padding: 28px;
+  text-align: center;
+}
+
+.smallbiz__owner {
+  display: inline-block;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  margin-top: 8px;
+}
+
+.smallbiz__before-list {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.smallbiz__before-list li {
+  padding: 10px;
+  background: var(--bg-alt);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.smallbiz__arrow-down {
+  width: 1px;
+  height: 24px;
+  background: var(--line-strong);
+  margin: 12px auto 0;
+}
+
+.smallbiz__core {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+.smallbiz__after-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.smallbiz__after-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 6px;
+  background: var(--signal-tint);
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.smallbiz__after-sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-faint);
+}
+
+.smallbiz__statement {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--line-strong);
+  text-align: center;
+}
+
+.smallbiz__statement p {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(20px, 2.6vw, 28px);
+  max-width: 24ch;
+  margin: 0 auto;
+}
+
+/* Real impact */
+.impact-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.impact-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.impact-card--up {
+  color: var(--green);
+}
+
+.impact-card--down {
+  color: var(--amber);
+}
+
+.impact-note {
+  margin-top: 24px;
+}
+
+.impact-note p {
+  font-size: 13.5px;
+  color: var(--ink-faint);
+}
+
+/* CTA */
+.cta {
+  background: var(--ink);
+  color: var(--bg);
+  text-align: center;
+  overflow: hidden;
+}
+
+.cta__glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(75, 60, 240, 0.35), transparent 55%);
+  pointer-events: none;
+}
+
+.cta__inner {
+  position: relative;
+}
+
+.cta h2 {
+  font-size: clamp(28px, 4vw, 44px);
+  color: var(--bg);
+  max-width: 16ch;
+  margin: 0 auto;
+}
+
+.cta p {
+  margin-top: 18px;
+  font-size: 17px;
+  color: #C9C6DE;
+}
+
+.cta__actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 36px;
+  flex-wrap: wrap;
+}
+
+.cta__ghost {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--bg);
+}
+
+.cta__ghost:hover {
+  border-color: var(--bg);
+}
+
+@media (min-width: 700px) {
+  .smallbiz__compare {
+    grid-template-columns: 1fr 1fr;
+  }
+}

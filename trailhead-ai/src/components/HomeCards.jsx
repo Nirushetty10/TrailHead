@@ -1,10 +1,9 @@
-import { cards } from '../data/cards.js';
 import './HomeCards.css';
 
-export default function HomeCards({ onSelectCard }) {
+export default function HomeCards({ cards, businessName, onSelectCard }) {
   return (
     <div className="home-cards">
-      <div className="home-cards__brand">TRAILHEAD</div>
+      <div className="home-cards__brand">{(businessName || 'ASSISTANT').toUpperCase()}</div>
       <h1 className="home-cards__greeting">What do you need help with?</h1>
 
       <div className="home-cards__grid">

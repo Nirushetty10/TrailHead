@@ -1,0 +1,64 @@
+{
+  "9f216e0e-f0fa-4a1b-8953-e4bf9b1b3cd6": {
+    "history": [
+      {
+        "role": "user",
+        "content": "alex@example.com"
+      },
+      {
+        "role": "assistant",
+        "content": "Sure thing! Could you please provide the order number you’d like me to look up?"
+      },
+      {
+        "role": "user",
+        "content": "TH-62210"
+      },
+      {
+        "role": "assistant",
+        "content": "Your order TH‑62210 (delivered on 2026‑08‑31) is complete. Let me know if you need anything else—perhaps a return or exchange?"
+      },
+      {
+        "role": "user",
+        "content": "I asked for exchange"
+      },
+      {
+        "role": "assistant",
+        "content": "I can start an exchange for order TH‑62210 (total $98). Please confirm you’d like to proceed, and I’ll take care of it for you."
+      },
+      {
+        "role": "user",
+        "content": "Product is not good"
+      },
+      {
+        "role": "assistant",
+        "content": "I’m ready to start the exchange for order TH‑62210. Please confirm you’d like me to proceed."
+      },
+      {
+        "role": "user",
+        "content": "TH-48213"
+      },
+      {
+        "role": "assistant",
+        "content": "I’m not able to view the details of order TH‑48213 yet. Could you please confirm the email address associated with that order? Once I have it, I can look up the order and help you with the exchange."
+      },
+      {
+        "role": "user",
+        "content": "jane@example.com"
+      },
+      {
+        "role": "assistant",
+        "content": "Your exchange request for order TH‑48213 has been flagged for a team member to review. We’ll get back to you shortly with an update."
+      }
+    ],
+    "facts": {
+      "lastOrderId": "TH-48213",
+      "lastCategory": null,
+      "lastBudget": null
+    },
+    "cart": [],
+    "verifiedOrders": [
+      "TH-62210",
+      "TH-48213"
+    ]
+  }
+}
