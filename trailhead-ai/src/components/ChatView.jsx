@@ -4,6 +4,7 @@ import FlagIcon from '@mui/icons-material/FlagRounded';
 import ProductCard from './ProductCard.jsx';
 import OrderCard from './OrderCard.jsx';
 import ConfirmCard from './ConfirmCard.jsx';
+import FeedbackButtons from './FeedbackButtons.jsx';
 import { cards } from '../data/cards.js';
 import './ChatView.css';
 
@@ -89,6 +90,8 @@ function ChatMessage({ message }) {
           ))}
         </div>
       )}
+
+      {message.messageId && <FeedbackButtons messageId={message.messageId} />}
     </div>
   );
 }

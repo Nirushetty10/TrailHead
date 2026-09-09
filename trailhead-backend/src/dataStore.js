@@ -1,43 +1,54 @@
-import fs from 'fs';
-import { businessDataPath } from './businessRegistry.js';
+import { db } from './db/connection.js';
 
-// Phase 3: one cache entry per business, loaded lazily on first access.
-// Phase 4: replace the bodies of these functions with real DB queries or
-// platform API calls per business — the function signatures (all taking
-// businessId first) are the contract that stays stable when that happens.
-
-const cache = new Map(); // businessId -> { products, orders, policies, appointments }
-
-function loadJSON(businessId, filename) {
-  const raw = fs.readFileSync(businessDataPath(businessId, filename), 'utf-8');
-  return JSON.parse(raw);
+function rowToProduct(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    price: row.price,
+    originalPrice: row.original_price,
+    currency: row.currency,
+    stock: row.stock,
+    stockCount: row.stock_count,
+    description: row.description,
+    tags: JSON.parse(row.tags),
+    variants: JSON.parse(row.variants),
+  };
 }
 
-function saveJSON(businessId, filename, data) {
-  fs.writeFileSync(businessDataPath(businessId, filename), JSON.stringify(data, null, 2));
+function rowToOrder(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    customerEmail: row.customer_email,
+    items: JSON.parse(row.items),
+    status: row.status,
+    shippedAt: row.shipped_at,
+    deliveredAt: row.delivered_at,
+    estimatedDelivery: row.estimated_delivery,
+    breakdown: JSON.parse(row.breakdown),
+    exchangeStatus: row.exchange_status,
+    exchangeReason: row.exchange_reason,
+    exchangeRequestedAt: row.exchange_requested_at,
+  };
 }
 
-function getBusinessData(businessId) {
-  if (!cache.has(businessId)) {
-    cache.set(businessId, {
-      products: loadJSON(businessId, 'products.json'),
-      orders: loadJSON(businessId, 'orders.json'),
-      policies: loadJSON(businessId, 'policies.json'),
-      appointments: loadJSON(businessId, 'appointments.json'),
-    });
-  }
-  return cache.get(businessId);
+function rowToSlot(row) {
+  if (!row) return null;
+  return { id: row.id, date: row.date, time: row.time, service: row.service, booked: !!row.booked };
 }
 
 // --- Reads ---
 
 export function getAllProducts(businessId) {
-  return getBusinessData(businessId).products;
+  return db.prepare('SELECT * FROM products WHERE tenant_id = ?').all(businessId).map(rowToProduct);
 }
 
 export function searchProducts(businessId, { maxPrice, category, keyword, keywords } = {}) {
   const keywordList = keywords || (keyword ? [keyword] : []);
-  return getBusinessData(businessId).products.filter((p) => {
+  const all = getAllProducts(businessId);
+  return all.filter((p) => {
     if (maxPrice && p.price > maxPrice) return false;
     if (category && p.category !== category) return false;
     if (keywordList.length) {
@@ -51,53 +62,68 @@ export function searchProducts(businessId, { maxPrice, category, keyword, keywor
 
 export function getOrderById(businessId, orderId) {
   if (!orderId) return null;
-  return getBusinessData(businessId).orders.find((o) => o.id.toLowerCase() === orderId.toLowerCase()) || null;
+  // SQLite's default collation is case-sensitive; orders were previously
+  // matched case-insensitively (order ids get typed in all sorts of
+  // casing), so preserve that behavior explicitly.
+  const row = db
+    .prepare('SELECT * FROM orders WHERE tenant_id = ? AND UPPER(id) = UPPER(?)')
+    .get(businessId, orderId);
+  return rowToOrder(row);
 }
 
 export function getProductById(businessId, productId) {
-  return getBusinessData(businessId).products.find((p) => p.id === productId) || null;
+  const row = db.prepare('SELECT * FROM products WHERE tenant_id = ? AND id = ?').get(businessId, productId);
+  return rowToProduct(row);
+}
+
+export function getProductsByIds(businessId, productIds) {
+  return productIds.map((id) => getProductById(businessId, id)).filter(Boolean);
 }
 
 export function findPolicy(businessId, text) {
   const lower = text.toLowerCase();
-  return getBusinessData(businessId).policies.find((p) => p.keywords.some((k) => lower.includes(k))) || null;
+  const docs = db
+    .prepare('SELECT * FROM knowledge_documents WHERE tenant_id = ? AND status = ?')
+    .all(businessId, 'active');
+  return (
+    docs
+      .map((d) => ({ topic: d.title, content: d.content, keywords: JSON.parse(d.keywords) }))
+      .find((p) => p.keywords.some((k) => lower.includes(k))) || null
+  );
 }
 
 export function getAvailableSlots(businessId, { date } = {}) {
-  return getBusinessData(businessId).appointments.filter((s) => !s.booked && (!date || s.date === date));
+  const rows = date
+    ? db.prepare('SELECT * FROM appointments WHERE tenant_id = ? AND booked = 0 AND date = ?').all(businessId, date)
+    : db.prepare('SELECT * FROM appointments WHERE tenant_id = ? AND booked = 0').all(businessId);
+  return rows.map(rowToSlot);
 }
 
 export function getSlotById(businessId, slotId) {
-  return getBusinessData(businessId).appointments.find((s) => s.id === slotId) || null;
+  const row = db.prepare('SELECT * FROM appointments WHERE tenant_id = ? AND id = ?').get(businessId, slotId);
+  return rowToSlot(row);
 }
 
-// --- Writes (persisted to disk, scoped to the business's own files) ---
+// --- Writes ---
 
 export function bookSlot(businessId, slotId) {
-  const data = getBusinessData(businessId);
-  const slot = data.appointments.find((s) => s.id === slotId);
+  const slot = getSlotById(businessId, slotId);
   if (!slot) return { ok: false, error: 'Slot not found.' };
   if (slot.booked) return { ok: false, error: 'That slot was just taken — pick another.' };
 
-  slot.booked = true;
-  saveJSON(businessId, 'appointments.json', data.appointments);
-  return { ok: true, slot };
+  db.prepare('UPDATE appointments SET booked = 1 WHERE tenant_id = ? AND id = ?').run(businessId, slotId);
+  return { ok: true, slot: { ...slot, booked: true } };
 }
 
 export function requestExchange(businessId, orderId, reason) {
-  const data = getBusinessData(businessId);
-  const order = data.orders.find((o) => o.id.toLowerCase() === orderId.toLowerCase());
+  const order = getOrderById(businessId, orderId);
   if (!order) return { ok: false, error: 'Order not found.' };
 
-  order.exchangeStatus = 'requested';
-  order.exchangeReason = reason || null;
-  order.exchangeRequestedAt = new Date().toISOString();
-  saveJSON(businessId, 'orders.json', data.orders);
-  return { ok: true, order };
-}
+  const now = new Date().toISOString();
+  db.prepare(
+    `UPDATE orders SET exchange_status = 'requested', exchange_reason = ?, exchange_requested_at = ?
+     WHERE tenant_id = ? AND UPPER(id) = UPPER(?)`
+  ).run(reason || null, now, businessId, orderId);
 
-// Lets a future admin dashboard hot-reload a single business's data
-// without restarting the whole server.
-export function reloadBusinessData(businessId) {
-  cache.delete(businessId);
+  return { ok: true, order: { ...order, exchangeStatus: 'requested', exchangeReason: reason || null, exchangeRequestedAt: now } };
 }

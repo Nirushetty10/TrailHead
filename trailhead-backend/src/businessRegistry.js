@@ -1,40 +1,32 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { db } from './db/connection.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const registryFile = path.join(__dirname, '..', 'data', 'businesses.json');
-const businessesDir = path.join(__dirname, '..', 'data', 'businesses');
+const DEFAULT_TENANT_ID = 'trailhead';
 
-let registry = JSON.parse(fs.readFileSync(registryFile, 'utf-8'));
-
-const DEFAULT_BUSINESS_ID = 'trailhead';
+function rowToBusiness(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    plan: row.plan,
+    defaultTheme: row.default_theme,
+    enabledCardIds: JSON.parse(row.enabled_card_ids),
+  };
+}
 
 export function getBusiness(businessId) {
-  return (
-    registry.find((b) => b.id === businessId) ||
-    registry.find((b) => b.id === DEFAULT_BUSINESS_ID)
-  );
+  const row = db.prepare('SELECT * FROM tenants WHERE id = ?').get(businessId);
+  if (row) return rowToBusiness(row);
+  const fallback = db.prepare('SELECT * FROM tenants WHERE id = ?').get(DEFAULT_TENANT_ID);
+  return rowToBusiness(fallback);
 }
 
 export function listBusinesses() {
-  return registry;
+  return db.prepare('SELECT * FROM tenants').all().map(rowToBusiness);
 }
 
-// Resolves to the actual business id being used — falls back to the
-// default if an unknown/missing id was requested, so a typo'd businessId
-// degrades gracefully instead of erroring.
 export function resolveBusinessId(requestedId) {
-  return registry.some((b) => b.id === requestedId) ? requestedId : DEFAULT_BUSINESS_ID;
-}
-
-// Every per-business data file (products, orders, sessions, usage, etc)
-// lives under data/businesses/{id}/{filename} — this is the ONLY function
-// that knows that path structure.
-export function businessDataPath(businessId, filename) {
-  return path.join(businessesDir, businessId, filename);
-}
-
-export function reloadRegistry() {
-  registry = JSON.parse(fs.readFileSync(registryFile, 'utf-8'));
+  if (!requestedId) return DEFAULT_TENANT_ID;
+  const exists = db.prepare('SELECT 1 FROM tenants WHERE id = ?').get(requestedId);
+  return exists ? requestedId : DEFAULT_TENANT_ID;
 }

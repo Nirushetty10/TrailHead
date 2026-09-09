@@ -99,6 +99,7 @@ export default function App() {
           orderCard: result.orderCard,
           confirmAction: result.confirmAction,
           escalation: result.escalation,
+          messageId: result.messageId,
         },
       ]);
     }

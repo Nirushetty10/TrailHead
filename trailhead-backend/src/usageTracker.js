@@ -1,47 +1,40 @@
-import fs from 'fs';
-import { businessDataPath } from './businessRegistry.js';
+import { db, generateId } from './db/connection.js';
 
 function currentMonthKey() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function load(businessId) {
-  const raw = JSON.parse(fs.readFileSync(businessDataPath(businessId, 'usage.json'), 'utf-8'));
-  if (raw.month !== currentMonthKey()) {
-    return { month: currentMonthKey(), conversationIds: [] };
-  }
-  return raw;
-}
-
-function save(businessId, data) {
-  fs.writeFileSync(businessDataPath(businessId, 'usage.json'), JSON.stringify(data, null, 2));
-}
-
-/**
- * A "conversation" = one distinct clientId that has sent at least one
- * message THIS BUSINESS this month. Scoped per business — Trailhead's
- * conversation count and the cafe's are tracked completely separately,
- * even if (hypothetically) the same customer talked to both.
- */
 export function checkAndRecordConversation(businessId, clientId, plan) {
-  const usage = load(businessId);
-  const alreadyCounted = usage.conversationIds.includes(clientId);
+  const month = currentMonthKey();
 
-  if (alreadyCounted) {
-    return { count: usage.conversationIds.length, capped: false };
+  const already = db
+    .prepare('SELECT 1 FROM usage_counters WHERE tenant_id = ? AND month = ? AND client_id = ?')
+    .get(businessId, month, clientId);
+
+  if (already) {
+    const count = db
+      .prepare('SELECT COUNT(*) as c FROM usage_counters WHERE tenant_id = ? AND month = ?')
+      .get(businessId, month).c;
+    return { count, capped: false };
   }
 
-  if (usage.conversationIds.length >= plan.conversationsPerMonth) {
-    return { count: usage.conversationIds.length, capped: true };
+  const currentCount = db
+    .prepare('SELECT COUNT(*) as c FROM usage_counters WHERE tenant_id = ? AND month = ?')
+    .get(businessId, month).c;
+
+  if (currentCount >= plan.conversationsPerMonth) {
+    return { count: currentCount, capped: true };
   }
 
-  usage.conversationIds.push(clientId);
-  save(businessId, usage);
-  return { count: usage.conversationIds.length, capped: false };
+  db.prepare('INSERT INTO usage_counters (tenant_id, month, client_id) VALUES (?, ?, ?)').run(businessId, month, clientId);
+  return { count: currentCount + 1, capped: false };
 }
 
 export function getMonthlyUsage(businessId) {
-  const usage = load(businessId);
-  return { month: usage.month, count: usage.conversationIds.length };
+  const month = currentMonthKey();
+  const count = db
+    .prepare('SELECT COUNT(*) as c FROM usage_counters WHERE tenant_id = ? AND month = ?')
+    .get(businessId, month).c;
+  return { month, count };
 }

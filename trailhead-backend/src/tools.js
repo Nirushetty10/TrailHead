@@ -6,10 +6,13 @@ import {
   getSlotById,
   bookSlot,
   requestExchange,
+  getProductsByIds,
 } from './dataStore.js';
 import { raiseEscalation } from './escalationStore.js';
-
-const EXCHANGE_AUTO_APPROVE_LIMIT = 100;
+import { recordEvent } from './services/eventService.js';
+import { recordAudit } from './services/auditLogService.js';
+import { formatTranscript } from './services/conversationService.js';
+import { evaluateAction } from './services/policyService.js';
 
 export const toolSchemas = [
   {
@@ -101,6 +104,24 @@ export const toolSchemas = [
   {
     type: 'function',
     function: {
+      name: 'compare_products',
+      description: 'Compare two or more specific products side by side (price, stock, description). Use this when the customer asks about the difference between named products, not for general browsing.',
+      parameters: {
+        type: 'object',
+        properties: {
+          productIds: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'The product ids to compare — get these from a prior search_products result.',
+          },
+        },
+        required: ['productIds'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'add_to_cart',
       description: "Add a product to the customer's cart. Low-risk — no confirmation needed.",
       parameters: {
@@ -142,6 +163,20 @@ export function executeTool(businessId, name, args, session) {
         session.facts.lastCategory = args.category || session.facts.lastCategory;
         session.facts.lastBudget = args.maxPrice || session.facts.lastBudget;
       }
+      recordEvent({
+        tenantId: businessId,
+        eventType: 'ProductSearched',
+        source: 'ai',
+        metadata: { ...args, resultCount: results.length },
+      });
+      if (results.length) {
+        recordEvent({
+          tenantId: businessId,
+          eventType: 'ProductRecommended',
+          source: 'ai',
+          metadata: { productIds: results.map((p) => p.id) },
+        });
+      }
       return {
         toolResult: results.length
           ? JSON.stringify(results.map((p) => ({ name: p.name, price: p.price, stock: p.stock, description: p.description })))
@@ -164,9 +199,38 @@ export function executeTool(businessId, name, args, session) {
 
     case 'find_policy': {
       const policy = findPolicy(businessId, args.topic || '');
+      if (!policy) {
+        // This is exactly the signal Phase 3's knowledge-gap detection
+        // will read from later — recording it now means no backfill needed.
+        recordEvent({
+          tenantId: businessId,
+          eventType: 'KnowledgeGap',
+          source: 'ai',
+          metadata: { topic: args.topic || null },
+        });
+      }
       return {
         toolResult: policy ? policy.content : 'No policy found on that topic.',
         uiPayload: null,
+      };
+    }
+
+    case 'compare_products': {
+      const products = getProductsByIds(businessId, args.productIds || []);
+      if (!products.length) {
+        return { toolResult: 'None of those product ids were found.', uiPayload: null };
+      }
+      recordEvent({
+        tenantId: businessId,
+        eventType: 'ProductRecommended',
+        source: 'ai',
+        metadata: { productIds: products.map((p) => p.id), context: 'comparison' },
+      });
+      return {
+        toolResult: JSON.stringify(
+          products.map((p) => ({ name: p.name, price: p.price, stock: p.stock, description: p.description, tags: p.tags }))
+        ),
+        uiPayload: { products, comparison: true },
       };
     }
 
@@ -202,15 +266,38 @@ export function executeTool(businessId, name, args, session) {
         return { toolResult: VERIFICATION_NEEDED_MESSAGE, uiPayload: null };
       }
 
-      if (order.breakdown.total >= EXCHANGE_AUTO_APPROVE_LIMIT) {
+      // Configurable per tenant now (was a hardcoded $100 constant).
+      // 'auto' and 'approval' are treated identically here — exchanges
+      // have always required customer confirmation regardless of amount,
+      // preserving exact prior tested behavior. Only 'restricted' changes
+      // the flow (escalates instead of confirming). See policyService.js
+      // for why the 3-tier engine still exists even though this action
+      // only really uses 2 of the 3 tiers today.
+      const { decision, policy } = evaluateAction(businessId, 'start_exchange', order.breakdown.total);
+
+      if (decision === 'restricted') {
+        // Rich context for the human who has to act on this — not just
+        // an order id. Doc's Phase 2 spec explicitly wants: customer,
+        // conversation summary, products discussed, order info, reason.
+        const context = {
+          customerEmail: order.customerEmail,
+          orderSummary: { id: order.id, total: order.breakdown.total, status: order.status, items: order.items },
+          recentConversation: session.conversationId
+            ? formatTranscript(businessId, session.conversationId, 8)
+            : 'No conversation history available.',
+          productsDiscussed: session.facts.lastCategory || null,
+          recommendedNextAction: 'Review order and contact customer to confirm exchange eligibility before approving.',
+        };
+
         const escalation = raiseEscalation(businessId, {
           type: 'exchange_review',
           orderId: order.id,
           reason: args.reason,
-          note: `Order ${order.id} total $${order.breakdown.total} exceeds $${EXCHANGE_AUTO_APPROVE_LIMIT} auto-approval limit — needs human review.`,
+          note: `Order ${order.id} total $${order.breakdown.total} exceeds the $${policy.restrictedAtOrAbove} auto-approval limit — needs human review.`,
+          context,
         });
         return {
-          toolResult: `Order total is $${order.breakdown.total}, at or above the $${EXCHANGE_AUTO_APPROVE_LIMIT} auto-approval limit. This has been escalated to a human (escalation id ${escalation.id}) — tell the customer their request has been flagged for review, not approved.`,
+          toolResult: `Order total is $${order.breakdown.total}, at or above the $${policy.restrictedAtOrAbove} auto-approval limit. This has been escalated to a human (escalation id ${escalation.id}) — tell the customer their request has been flagged for review, not approved.`,
           uiPayload: {
             escalation: {
               id: escalation.id,
@@ -237,6 +324,13 @@ export function executeTool(businessId, name, args, session) {
 
     case 'add_to_cart': {
       session.cart.push({ productId: args.productId, quantity: args.quantity || 1 });
+      recordEvent({
+        tenantId: businessId,
+        eventType: 'AIAction',
+        productId: args.productId,
+        source: 'ai',
+        metadata: { action: 'add_to_cart', quantity: args.quantity || 1 },
+      });
       return {
         toolResult: `Added ${args.quantity || 1} x ${args.productId} to cart. Cart now has ${session.cart.length} item(s).`,
         uiPayload: { cartUpdate: [...session.cart] },
@@ -252,6 +346,22 @@ export function finalizeConfirmedAction(businessId, type, args) {
   if (type === 'book_appointment') {
     const result = bookSlot(businessId, args.slotId);
     if (!result.ok) return { ok: false, message: result.error };
+
+    recordAudit({
+      tenantId: businessId,
+      actorType: 'ai',
+      action: 'appointment_booked',
+      targetType: 'appointment',
+      targetId: args.slotId,
+      details: result.slot,
+    });
+    recordEvent({
+      tenantId: businessId,
+      eventType: 'AIAction',
+      source: 'ai',
+      metadata: { action: 'book_appointment', slot: result.slot },
+    });
+
     return {
       ok: true,
       message: `Booked: ${result.slot.service} on ${result.slot.date} at ${result.slot.time}.`,
@@ -262,6 +372,23 @@ export function finalizeConfirmedAction(businessId, type, args) {
   if (type === 'start_exchange') {
     const result = requestExchange(businessId, args.orderId, args.reason);
     if (!result.ok) return { ok: false, message: result.error };
+
+    recordAudit({
+      tenantId: businessId,
+      actorType: 'ai',
+      action: 'exchange_started',
+      targetType: 'order',
+      targetId: result.order.id,
+      details: { reason: args.reason },
+    });
+    recordEvent({
+      tenantId: businessId,
+      eventType: 'AIAction',
+      orderId: result.order.id,
+      source: 'ai',
+      metadata: { action: 'start_exchange', reason: args.reason },
+    });
+
     return {
       ok: true,
       message: `Exchange started for order ${result.order.id}. You'll get an email with return instructions.`,

@@ -2,6 +2,8 @@ import { io } from 'socket.io-client';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 const BUSINESS_ID = import.meta.env.VITE_BUSINESS_ID || 'trailhead';
+
+console.log(BUSINESS_ID)
 const CLIENT_ID_KEY = 'trailhead-client-id';
 
 // A stable identity that survives page refreshes and reconnects — unlike
